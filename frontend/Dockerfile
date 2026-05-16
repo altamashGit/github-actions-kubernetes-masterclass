@@ -1,7 +1,7 @@
 ########################################
 # Stage 1: Prepare static assets
 ########################################
-FROM alpine:3.23 AS builder
+FROM nginx:1.28-alpine AS builder
 
 WORKDIR /app
 
@@ -13,10 +13,13 @@ COPY nginx.conf ./nginx.conf
 ########################################
 # Stage 2: Secure Production Runtime
 ########################################
-FROM nginxinc/nginx-unprivileged:1.29.1-alpine3.22
+FROM nginxinc/nginx-unprivileged:stable-alpine
 
-# Switch to root for filesystem changes
+# Switch to root
 USER root
+
+# Update vulnerable Alpine packages
+RUN apk update && apk upgrade --no-cache
 
 # Remove default content
 RUN rm -rf /usr/share/nginx/html/*
