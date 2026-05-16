@@ -81,7 +81,7 @@ jobs:
 #### --------------------------------- 
   build-trivy:
     name: Build Docker Images and Run Trivy Scan
-    needs: hadolint-scan
+    needs: [gitleaks_scan, test, hadolint-scan]
     runs-on: ubuntu-latest
 
     steps:
@@ -134,7 +134,7 @@ jobs:
 
   build-and-push:
    name: Build Docker Images and push to docker hub
-   needs: build-trivy
+   needs: [build-trivy]
    if: success()
    runs-on: ubuntu-latest
 
