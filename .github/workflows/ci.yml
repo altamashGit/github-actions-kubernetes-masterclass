@@ -1,4 +1,7 @@
 name: CI
+permissions:
+  contents: read
+  security-events: write
 
 on:
   push:
@@ -48,6 +51,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+          cache: true
 
       # Run Backend Tests
       - name: Run Backend Tests
@@ -55,9 +59,9 @@ jobs:
         run: |
           go test ./...
 
-  #### ---------------------------------
-   ## Hadolint Dockerfile Scan
-  #### ---------------------------------
+#### ---------------------------------
+  ## Hadolint Dockerfile Scan
+#### ---------------------------------
   hadolint-scan:
     runs-on: ubuntu-latest
 
@@ -96,36 +100,47 @@ jobs:
 
       # Build Backend Docker Image
       - name: Build Backend Docker Image
-        run: |
-          docker build -t skillpulse-backend ./backend
+        uses: docker/build-push-action@v7
+        with:
+         context: ./backend
+         load: true
+         tags: skillpulse-backend:latest
+         cache-from: type=gha
+         cache-to: type=gha,mode=max
 
       # Build Frontend Docker Image
-      - name: Build Frontend Docker Image
-        run: |
-          docker build -t skillpulse-frontend ./frontend
-
+      - name: Build frontend Docker Image
+        uses: docker/build-push-action@v7
+        with:
+         context: ./frontend
+         load: true
+         tags: skillpulse-frontend:latest
+         cache-from: type=gha
+         cache-to: type=gha,mode=max
       # Trivy Scan Backend Image
       - name: Trivy Scan Backend Image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: skillpulse-backend
+          image-ref: skillpulse-backend:latest
           format: table
           exit-code: 1
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          scanners: vuln
           cache: 'true'
 
       # Trivy Scan Frontend Image
       - name: Trivy Scan Frontend Image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: skillpulse-frontend
+          image-ref: skillpulse-frontend:latest
           format: table
           exit-code: 1
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          scanners: vuln
           cache: 'true'
 
 #### ---------------------------------
@@ -159,12 +174,14 @@ jobs:
          tags: |
            ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-backend:latest
            ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-backend:${{ github.sha }}
+         cache-from: type=gha
 
      - name: Build and push frontend
-       uses: docker/build-push-action@v7
+       uses: docker/build-push-action@v6
        with:
          context: ./frontend
          push: true
          tags: |
            ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-frontend:latest
            ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-frontend:${{ github.sha }}
+         cache-from: type=gha
