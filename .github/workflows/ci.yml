@@ -36,7 +36,6 @@ jobs:
 
   test:
     name: Build Test Trivy Scan
-    needs: gitleaks_scan
     runs-on: ubuntu-latest
 
     steps:
@@ -60,8 +59,6 @@ jobs:
    ## Hadolint Dockerfile Scan
   #### ---------------------------------
   hadolint-scan:
-    name: Hadolint Dockerfile Scan
-    needs:  test
     runs-on: ubuntu-latest
 
     steps:
@@ -80,7 +77,7 @@ jobs:
         with:
           dockerfile: frontend/Dockerfile
 #### ---------------------------------
-## Build + Trivy Scan
+## Docker Image Trivy Scan
 #### --------------------------------- 
   build-trivy:
     name: Build Docker Images and Run Trivy Scan
