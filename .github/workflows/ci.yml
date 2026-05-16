@@ -131,36 +131,40 @@ jobs:
 #### ---------------------------------
   ## Build Docker Images and push to docker hub
 #### ---------------------------------
+
   build-and-push:
-    name: Build Docker Images and push to docker hub
-    needs: build-trivy
-    if: success()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+   name: Build Docker Images and push to docker hub
+   needs: build-trivy
+   if: success()
+   runs-on: ubuntu-latest
 
-      - uses: docker/setup-buildx-action@v4
+   steps:
+     - name: Checkout code
+       uses: actions/checkout@v4
 
-      - uses: docker/login-action@v4
-        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+     - name: Setup Docker Buildx
+       uses: docker/setup-buildx-action@v4
 
-      - name: Build and push backend
-        uses: docker/build-push-action@v7
-        with:
-          context: ./backend
-          push: ${{ vars.DEPLOY_ENABLED == 'true' }}
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/skillpulse-backend:latest', secrets.DOCKERHUB_USERNAME) || 'skillpulse-backend:latest' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/skillpulse-backend:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || format('skillpulse-backend:{0}', github.sha) }}
+     - name: Login to DockerHub
+       uses: docker/login-action@v4
+       with:
+         username: ${{ secrets.DOCKERHUB_USERNAME }}
+         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v7
-        with:
-          context: ./frontend
-          push: ${{ vars.DEPLOY_ENABLED == 'true' }}
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/skillpulse-frontend:latest', secrets.DOCKERHUB_USERNAME) || 'skillpulse-frontend:latest' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/skillpulse-frontend:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || format('skillpulse-frontend:{0}', github.sha) }}
+     - name: Build and push backend
+       uses: docker/build-push-action@v6
+       with:
+         context: ./backend
+         push: true
+         tags: |
+           ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-backend:latest
+           ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-backend:${{ github.sha }}
+
+     - name: Build and push frontend
+       uses: docker/build-push-action@v7
+       with:
+         context: ./frontend
+         push: true
+         tags: |
+           ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-frontend:latest
+           ${{ secrets.DOCKERHUB_USERNAME }}/skillpulse-frontend:${{ github.sha }}
