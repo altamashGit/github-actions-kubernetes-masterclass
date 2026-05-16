@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches: [test]
-    paths-ignore:
-      - 'k8s/**'
-      - 'docs/**'
-      - '**/*.md'
+    # paths-ignore:
+    #   - 'k8s/**'
+    #   - 'docs/**'
+    #   - '**/*.md'
   workflow_dispatch:
 
 jobs:
