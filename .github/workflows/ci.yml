@@ -118,7 +118,7 @@ jobs:
 
       # Trivy Scan Frontend Image
       - name: Trivy Scan Frontend Image
-        uses: aquasecurity/trivy-action@
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: skillpulse-frontend
           format: table
