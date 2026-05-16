@@ -1,20 +1,26 @@
-# Stage 1: Build
+# ---------- Build ----------
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
-RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -o skillpulse .
 
-# Stage 2: Run
-FROM alpine:3.23
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o skillpulse .
 
-RUN apk --no-cache add ca-certificates
+# ---------- Runtime ----------
+FROM gcr.io/distroless/static-debian12
 
 WORKDIR /app
 
 COPY --from=builder /app/skillpulse .
 
 EXPOSE 8080
+
+USER nonroot:nonroot
 
 CMD ["./skillpulse"]
