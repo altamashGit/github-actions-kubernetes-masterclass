@@ -56,7 +56,7 @@ jobs:
             # Restart application
             docker compose down || true
             docker compose pull
-            docker compose up -d --build
+            docker compose up -d
 
             # Show containers
             docker ps
