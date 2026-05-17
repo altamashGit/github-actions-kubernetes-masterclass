@@ -77,6 +77,6 @@ jobs:
             run: terraform apply -auto-approve tfplan
           
           - name: Get EC2 Public IP
-            working-directory: ./terrafrom
+            working-directory: ./terraform
             run: |
               echo "EC2_HOST=$(terraform output -raw instance_public_ip)" >> $GITHUB_ENV
