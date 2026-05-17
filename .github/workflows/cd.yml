@@ -4,29 +4,78 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [test]
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true' }}
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'test'
+
     runs-on: ubuntu-latest
+    environment:
+         name: production
     steps:
-      - uses: appleboy/ssh-action@v1
+      # Automatically updates IP and  EC2 recreated
+      - name: Download Artifact
+        uses: dawidd6/action-download-artifact@v3
         with:
-          host: ${{ secrets.EC2_HOST }}
+          workflow: terraform.yml
+          workflow_conclusion: success
+          name: ec2-ip
+      
+      - name: Read EC2 IP
+        run: |
+          echo "EC2_HOST=$(cat ec2_ip.txt)" >> $GITHUB_ENV
+
+      - name: Show IP
+        run: |
+          echo "Deploying to $EC2_HOST"
+
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+
           script: |
+            set -e
+
+            export BRANCH=test
+
             if [ ! -d ~/github-actions-kubernetes-masterclass ]; then
-              git clone ${{ github.server_url }}/${{ github.repository }}.git ~/github-actions-kubernetes-masterclass
+              git clone -b $BRANCH ${{ github.server_url }}/${{ github.repository }}.git ~/github-actions-kubernetes-masterclass
             fi
             cd ~/github-actions-kubernetes-masterclass
-            git pull origin main
-            if [ ! -f .env ]; then
-              echo "ERROR: ~/github-actions-kubernetes-masterclass/.env is missing. Create it once with DOCKERHUB_USERNAME and DB credentials."
-              exit 1
-            fi
-            docker compose pull
-            docker compose up -d
-            docker image prune -f
+              
+              git checkout $BRANCH
+              git pull origin $BRANCH
 
+             cat > .env <<EOF
+              MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+              DB_HOST=${{ secrets.DB_HOST }}
+              DB_PORT=${{ secrets.DB_PORT }}
+              DB_USER=${{ secrets.DB_USER }}
+              DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+              DB_NAME=${{ secrets.DB_NAME }}
+              DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+              EOF
+
+            # Stop old containers safely
+            docker compose down || true
+
+            # Remove dangling containers/images
+            docker container prune -f || true
+            docker image prune -af || true
+
+            # Pull latest images
+            docker compose pull || true
+
+            # Build and start containers
+            docker compose up -d --build --remove-orphans
+
+            # Cleanup
+            docker system prune -f || true
+
+            # Show running containers
+            docker ps
