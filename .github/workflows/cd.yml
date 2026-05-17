@@ -16,25 +16,10 @@ jobs:
          name: production
     steps:
       # Automatically updates IP and  EC2 recreated
-      - name: Download Artifact
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: terraform.yml
-          workflow_conclusion: success
-          name: ec2-ip
-      
-      - name: Read EC2 IP
-        run: |
-          echo "EC2_HOST=$(cat ec2_ip.txt)" >> $GITHUB_ENV
-
-      - name: Show IP
-        run: |
-          echo "Deploying to $EC2_HOST"
-
       - name: Deploy
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ env.EC2_HOST }}
+          host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
 
