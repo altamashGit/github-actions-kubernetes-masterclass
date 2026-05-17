@@ -31,9 +31,12 @@ docs/skillpulse-kubernetes-guide.html
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files (may contain secrets)
-*.tfvars
-*.tfvars.json
+  
+# Private SSH keys
+*.pem
+hackathon
 
-hackathon  
-hackathon.*
+# Terraform
+.terraform/
+*.tfstate
+*.tfvars
