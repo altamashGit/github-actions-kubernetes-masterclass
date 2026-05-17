@@ -39,7 +39,7 @@ RUN chown -R 101:101 /usr/share/nginx/html \
 # Drop privileges
 USER 101:101
 
-EXPOSE 8080
+EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD ["nginx", "-t"]
