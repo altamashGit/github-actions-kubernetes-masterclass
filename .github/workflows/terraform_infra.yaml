@@ -1,6 +1,9 @@
 name: Terraform Infra Deployment
 
 on:
+  push:
+    branches: 
+      - test
   workflow_dispatch:
 jobs:
     terraform-plan:
