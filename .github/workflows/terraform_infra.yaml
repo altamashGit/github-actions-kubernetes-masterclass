@@ -25,22 +25,22 @@ jobs:
               uses: hashicorp/setup-terraform@v3
 
             - name: Terraform Init
-              working-directory: ./terraform
+              working-directory: ./terraform/
               run: terraform init
 
             - name: Terraform Validate
-              working-directory: ./terraform
+              working-directory: ./terraform/
               run: terraform validate
 
             - name: Terraform Plan
-              working-directory: ./terraform
+              working-directory: ./terraform/
               run: terraform plan -out=tfplan
 
             - name: Upload Plan
               uses: actions/upload-artifact@v4
               with:
                name: tfplan
-               path: terraform/tfpla
+               path: terraform/tfplan
     terraform-apply:
        name: Terraform Apply
        needs: terraform-plan
