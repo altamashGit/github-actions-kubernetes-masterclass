@@ -32,7 +32,7 @@ jobs:
               git checkout $BRANCH
               git pull origin $BRANCH
 
-              cat > .env <<EOF
+                cat > .env <<EOF
               MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
               DB_HOST=${{ secrets.DB_HOST }}
               DB_PORT=${{ secrets.DB_PORT }}
