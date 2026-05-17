@@ -70,15 +70,16 @@ jobs:
 
             echo "===== CREATING ENV FILE ====="
 
-            cat > .env <<EOF
-            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            EOF
+            echo "===== CREATING ENV FILE ====="
+
+            printf "%s\n" \
+              "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+              "DB_HOST=${{ secrets.DB_HOST }}" \
+              "DB_PORT=${{ secrets.DB_PORT }}" \
+              "DB_USER=${{ secrets.DB_USER }}" \
+              "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+              "DB_NAME=${{ secrets.DB_NAME }}" \
+              "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
 
             echo "===== ENV FILE CREATED ====="
 
