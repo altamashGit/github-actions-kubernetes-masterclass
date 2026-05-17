@@ -4,10 +4,13 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [test]
 
 jobs:
   deploy:
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'test'
+
     runs-on: ubuntu-latest
     environment:
          name: production
@@ -28,11 +31,13 @@ jobs:
         run: |
           echo "Deploying to $EC2_HOST"
 
-      - uses: appleboy/ssh-action@v1
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+
           script: |
             set -e
 
