@@ -69,7 +69,7 @@ jobs:
           
             echo "===== STARTING CONTAINERS ====="
           
-            docker compose up -d --build --remove-orphans
+            docker compose up -d
           
             echo "===== CLEANUP ====="
           
