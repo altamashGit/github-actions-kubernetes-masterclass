@@ -27,18 +27,18 @@ variable "ami_id" {
 #     default     = "/c/Users/altam/github-actions-kubernetes-masterclass/hackathon.pub"  
 # }
 
-variable "server_count" {
-    description = "The number of instances to create"
-    type        = number
-    default     = 1
+# variable "server_count" {
+#     description = "The number of instances to create"
+#     type        = number
+#     default     = 1
   
-}
+# }
 
 
 variable "instance_name" {
     description = "The name to assign to the instance"
     type        = string
-    default     = "Terraform-EC2-Instance"
+    default     = "Hackathon-Skillpulse"
   
 }
 
