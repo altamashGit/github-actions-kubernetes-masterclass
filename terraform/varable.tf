@@ -17,11 +17,15 @@ variable "ami_id" {
   
 }
 
-variable "key_path" {
-    description = "The path to the SSH key pair for accessing the instance"
-    type        = string
-    default     = "/c/Users/altam/github-actions-kubernetes-masterclass/hackathon.pub"  
-}
+# variable "key_name" {
+#   default = "hackathon-key"
+# }
+
+# variable "key_path" {
+#     description = "The path to the SSH key pair for accessing the instance"
+#     type        = string
+#     default     = "/c/Users/altam/github-actions-kubernetes-masterclass/hackathon.pub"  
+# }
 
 variable "server_count" {
     description = "The number of instances to create"

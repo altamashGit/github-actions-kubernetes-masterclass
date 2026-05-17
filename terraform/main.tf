@@ -1,6 +1,6 @@
-resource "aws_key_pair" "terraform_key_pair" {
-    key_name   = "local_key_pair"
-    public_key = file(var.key_path)
+resource "aws_key_pair" "hackathon_key" {
+  key_name   = "hackathon-key"
+  public_key = file("${path.module}/hackathon.pub")
 }
 
 resource "aws_security_group" "terraform_ec2_sg" {
@@ -33,7 +33,7 @@ resource "aws_instance" "terraform_ec2_instance" {
     count             = var.server_count
     ami               = var.ami_id
     instance_type     = var.instace_type
-    key_name          = aws_key_pair.terraform_key_pair.key_name
+    key_name          = aws_key_pair.hackathon_key.key_name
     vpc_security_group_ids = [aws_security_group.terraform_ec2_sg.id]
 
     user_data = file("user_data.sh")
