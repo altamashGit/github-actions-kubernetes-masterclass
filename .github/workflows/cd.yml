@@ -23,46 +23,60 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
          
           script: |
-            set -e
-
+            set -euo pipefail
+          
             export BRANCH=test
-
-            if [ ! -d ~/github-actions-kubernetes-masterclass ]; then
-              git clone -b $BRANCH ${{ github.server_url }}/${{ github.repository }}.git ~/github-actions-kubernetes-masterclass
+          
+            APP_DIR="$HOME/github-actions-kubernetes-masterclass"
+          
+            echo "===== STARTING DEPLOYMENT ====="
+          
+            if [ ! -d "$APP_DIR" ]; then
+              git clone -b $BRANCH \
+              https://github.com/${{ github.repository }}.git \
+              $APP_DIR
             fi
-            cd ~/github-actions-kubernetes-masterclass
-              
-              git checkout $BRANCH
-              git pull origin $BRANCH
-
-               echo "===== CREATING ENV FILE ====="
-
+          
+            cd $APP_DIR
+          
+            git fetch origin
+          
+            git checkout $BRANCH
+          
+            git reset --hard origin/$BRANCH
+          
+            echo "===== CREATING ENV FILE ====="
+          
             printf "%s\n" \
-              "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-              "DB_HOST=${{ secrets.DB_HOST }}" \
-              "DB_PORT=${{ secrets.DB_PORT }}" \
-              "DB_USER=${{ secrets.DB_USER }}" \
-              "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
-              "DB_NAME=${{ secrets.DB_NAME }}" \
-              "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-
-            echo "===== ENV FILE CREATED ====="
-
-            # Stop old containers safely
+            "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            "DB_HOST=${{ secrets.DB_HOST }}" \
+            "DB_PORT=${{ secrets.DB_PORT }}" \
+            "DB_USER=${{ secrets.DB_USER }}" \
+            "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+            "DB_NAME=${{ secrets.DB_NAME }}" \
+            "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" \
+            > .env
+          
+            cat .env
+          
+            echo "===== STOPPING OLD CONTAINERS ====="
+          
             docker compose down || true
-
-            # Remove dangling containers/images
-            docker container prune -f || true
-            docker image prune -af || true
-
-            # Pull latest images
+          
+            echo "===== PULLING IMAGES ====="
+          
             docker compose pull || true
-
-            # Build and start containers
+          
+            echo "===== STARTING CONTAINERS ====="
+          
             docker compose up -d --build --remove-orphans
-
-            # Cleanup
-            docker system prune -f || true
-
-            # Show running containers
+          
+            echo "===== CLEANUP ====="
+          
+            docker image prune -af || true
+          
+            echo "===== RUNNING CONTAINERS ====="
+          
             docker ps
+          
+            echo "===== DEPLOYMENT SUCCESS ====="
