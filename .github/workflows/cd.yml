@@ -2,51 +2,48 @@ name: CD
 
 on:
   workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+    workflows:
+      - CI
+    types:
+      - completed
 
 jobs:
   deploy:
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'test'
-
     runs-on: ubuntu-latest
+
     environment:
-         name: production
+      name: production
+
     steps:
-      - name: Deploy
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1
+
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-         
+
           script: |
-            set -euo pipefail
-          
-            export BRANCH=test
-          
+            set -e
+
             APP_DIR="$HOME/github-actions-kubernetes-masterclass"
-          
-            echo "===== STARTING DEPLOYMENT ====="
-          
+            BRANCH="test"
+
+            # Clone repo if missing
             if [ ! -d "$APP_DIR" ]; then
               git clone -b $BRANCH \
               https://github.com/${{ github.repository }}.git \
               $APP_DIR
             fi
-          
+
             cd $APP_DIR
-          
+
+            # Update latest code
             git fetch origin
-          
             git checkout $BRANCH
-          
             git reset --hard origin/$BRANCH
-          
-            echo "===== CREATING ENV FILE ====="
-          
+
+            # Create .env file
             printf "%s\n" \
             "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
             "DB_HOST=${{ secrets.DB_HOST }}" \
@@ -54,29 +51,12 @@ jobs:
             "DB_USER=${{ secrets.DB_USER }}" \
             "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
             "DB_NAME=${{ secrets.DB_NAME }}" \
-            "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" \
             > .env
-          
-            cat .env
-          
-            echo "===== STOPPING OLD CONTAINERS ====="
-          
+
+            # Restart application
             docker compose down || true
-          
-            echo "===== PULLING IMAGES ====="
-          
-            docker compose pull || true
-          
-            echo "===== STARTING CONTAINERS ====="
-          
-            docker compose up -d --build --remove-orphans
-          
-            echo "===== CLEANUP ====="
-          
-            docker image prune -af || true
-          
-            echo "===== RUNNING CONTAINERS ====="
-          
+            docker compose pull
+            docker compose up -d --build
+
+            # Show containers
             docker ps
-          
-            echo "===== DEPLOYMENT SUCCESS ====="
