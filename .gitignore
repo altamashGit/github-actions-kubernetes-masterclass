@@ -20,3 +20,20 @@ CLAUDE.md
 # Intermediate PDF render output (regenerated from .md + .css)
 docs/skillpulse-cicd-guide.html
 docs/skillpulse-kubernetes-guide.html
+# Local .terraform directories
+**/.terraform/*
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (may contain secrets)
+*.tfvars
+*.tfvars.json
+
+hackathon  
+hackathon.*
