@@ -9,6 +9,7 @@ echo "=== Starting Bootstrapping ==="
 # 1. Update system and install Docker
 dnf update -y
 dnf install -y docker
+yum install git -y
 
 # 2. Start and enable Docker service
 systemctl start docker
