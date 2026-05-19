@@ -64,7 +64,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Backend Dockerfile Scan
+      # Backend Dockerfile Scann
       - name: Scan Backend Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
