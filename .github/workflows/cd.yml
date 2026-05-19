@@ -27,8 +27,6 @@ jobs:
           script: |
             set -e
 
-            yum install git -y
-
             APP_DIR="$HOME/github-actions-kubernetes-masterclass"
             BRANCH="test"
 
