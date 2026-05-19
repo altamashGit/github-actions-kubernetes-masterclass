@@ -5,12 +5,15 @@ on:
         branches:
             - test
     workflow_dispatch:
+permissions:
+    contents: write
 
 jobs:
     CI:
         name: CI Pipeline
         uses:  ./.github/workflows/ci.yml
         secrets: inherit
+
     manifest-bump:
         name: Menifest bump
         needs: CI
