@@ -27,10 +27,12 @@ jobs:
           script: |
             set -e
 
+            yum install git -y
+
             APP_DIR="$HOME/github-actions-kubernetes-masterclass"
             BRANCH="test"
 
-            # Clone repo if missing
+            ## Clone repo if missing
             if [ ! -d "$APP_DIR" ]; then
               git clone -b $BRANCH \
               https://github.com/${{ github.repository }}.git \
@@ -44,20 +46,50 @@ jobs:
             git checkout $BRANCH
             git reset --hard origin/$BRANCH
 
-            # Create .env file
-            printf "%s\n" \
-            "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-            "DB_HOST=${{ secrets.DB_HOST }}" \
-            "DB_PORT=${{ secrets.DB_PORT }}" \
-            "DB_USER=${{ secrets.DB_USER }}" \
-            "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
-            "DB_NAME=${{ secrets.DB_NAME }}" \
-            > .env
-
             # Restart application
-            docker compose down || true
-            docker compose pull
-            docker compose up -d
+            # kind create cluster --config k8s/kind-config.yaml --name skillpulse
+            # Restart application
+            CLUSTER_NAME="skillpulse"
+            
+            # Create cluster only if it does not exist
+            if ! kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
+              echo "Creating kind cluster: ${CLUSTER_NAME}"
+              kind create cluster --config k8s/kind-config.yaml --name ${CLUSTER_NAME}
+            else
+              echo "Kind cluster already exists: ${CLUSTER_NAME}"
+            fi
+            
+            # Ensure kubectl uses correct context
+            kubectl cluster-info
+            
+                        kubectl apply -f k8s/00-namespace.yaml \
+                          -f k8s/10-mysql.yaml \
+                          -f k8s/20-backend.yaml \
+                          -f k8s/30-frontend.yaml
+                        kind get clusters
+                        kubectl get pods -n skillpulse 
+                        kubectl apply -f observability/k8s/
+                        kubectl get pods -n observability
 
             # Show containers
             docker ps
+
+# This was for Test where i check thourgh docker compose my ci and cd is working perfectly 
+
+            # # Create .env file
+            # printf "%s\n" \
+            # "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            # "DB_HOST=${{ secrets.DB_HOST }}" \
+            # "DB_PORT=${{ secrets.DB_PORT }}" \
+            # "DB_USER=${{ secrets.DB_USER }}" \
+            # "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+            # "DB_NAME=${{ secrets.DB_NAME }}" \
+            # > .env
+
+            # # Restart application
+            # docker compose down || true
+            # docker compose pull
+            # docker compose up -d
+
+            # # Show containers
+            # docker ps
