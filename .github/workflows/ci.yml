@@ -34,7 +34,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  Unit_Tests:
     name: Unit Tests
-    needs: Secret_Scan
     runs-on: ubuntu-latest
 
     steps:
@@ -60,7 +59,6 @@ jobs:
 
  Dockerfile_Lint:
     runs-on: ubuntu-latest
-    needs:  [Secret_Scan,Unit_Tests,]
 
     steps:
       - name: Checkout Code
