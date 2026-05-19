@@ -56,26 +56,27 @@ jobs:
             else
               echo "Kind cluster already exists: ${CLUSTER_NAME}"
             fi
-            
-            # Create/update Kubernetes secrets
-              kubectl create secret generic skillpulse-db \
-                --from-literal=MYSQL_USER=${{ secrets.MYSQL_USER }} \
-                --from-literal=MYSQL_PASSWORD=${{ secrets.DB_PASSWORD }} \
-                --from-literal=MYSQL_DATABASE=${{ secrets.DB_NAME }} \
-                -n skillpulse \
-                --dry-run=client -o yaml | kubectl apply -f -
 
             # Ensure kubectl uses correct context
             kubectl cluster-info
             
-                        kubectl apply -f k8s/00-namespace.yaml \
-                          -f k8s/10-mysql.yaml \
+            kubectl apply -f k8s/00-namespace.yaml
+            kubectl create secret generic skillpulse-db \
+              --from-literal=MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+              --from-literal=MYSQL_USER=${{ secrets.MYSQL_USER }} \
+              --from-literal=MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+              --from-literal=MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }} \
+              -n skillpulse \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+                        kubectl apply -f k8s/10-mysql.yaml \
                           -f k8s/20-backend.yaml \
                           -f k8s/30-frontend.yaml
-                        kind get clusters
-                        kubectl get pods -n skillpulse 
-                        kubectl apply -f observability/
-                        kubectl get pods -n observability
+
+                   kind get clusters
+                   kubectl get pods -n skillpulse 
+                   kubectl apply -f observability/
+                   kubectl get pods -n observability
 
             # Show containers
             docker ps
