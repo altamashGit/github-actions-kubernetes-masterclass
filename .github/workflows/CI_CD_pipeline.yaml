@@ -15,7 +15,6 @@ jobs:
         secrets: inherit
 
     manifest-bump:
-        name: Menifest bump
         needs: CI
         uses: ./.github/workflows/cd-k8s.yml
         secrets: inherit
