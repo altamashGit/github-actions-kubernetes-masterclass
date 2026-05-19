@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: altamsh/skillpulse-backend:05b219c1c77b290c9d44bf51362e8ad24dec40d6
+          image: altamsh/skillpulse-backend:
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
