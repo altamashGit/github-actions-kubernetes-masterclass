@@ -6,7 +6,7 @@ nodes:
     image: kindest/node:v1.35.1
     extraPortMappings:
       - containerPort: 30080
-        hostPort: 8888
+        hostPort: 80
         protocol: TCP
   - role: worker
     image: kindest/node:v1.35.1
