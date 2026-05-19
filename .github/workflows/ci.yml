@@ -80,7 +80,7 @@ jobs:
     #### ---------------------------------
  Trivy_Security_Scan:
     name: Build Docker Images and Run Trivy Scan
-    needs: [Secret_Scan,Unit_Tests,Dockerfile_Lint]
+    needs: [Unit_Tests,Secret_Scan,Dockerfile_Lint]
     runs-on: ubuntu-latest
 
     steps:
