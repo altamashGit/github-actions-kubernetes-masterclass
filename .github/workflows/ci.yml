@@ -126,7 +126,7 @@ jobs:
           cache: 'true'
 
     #### ---------------------------------
-      ## Build Docker Images and push to docker hub
+      ## Build Docker Images and push to docker hub1
     #### ---------------------------------
  build-and-push:
    name: Build Docker Images and push to docker hub
