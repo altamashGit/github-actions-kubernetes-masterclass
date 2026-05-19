@@ -57,6 +57,14 @@ jobs:
               echo "Kind cluster already exists: ${CLUSTER_NAME}"
             fi
             
+            # Create/update Kubernetes secrets
+              kubectl create secret generic skillpulse-db \
+                --from-literal=MYSQL_USER=${{ secrets.MYSQL_USER }} \
+                --from-literal=MYSQL_PASSWORD=${{ secrets.DB_PASSWORD }} \
+                --from-literal=MYSQL_DATABASE=${{ secrets.DB_NAME }} \
+                -n skillpulse \
+                --dry-run=client -o yaml | kubectl apply -f -
+
             # Ensure kubectl uses correct context
             kubectl cluster-info
             
