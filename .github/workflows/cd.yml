@@ -66,7 +66,7 @@ jobs:
                           -f k8s/30-frontend.yaml
                         kind get clusters
                         kubectl get pods -n skillpulse 
-                        kubectl apply -f observability/k8s/
+                        kubectl apply -f observability/
                         kubectl get pods -n observability
 
             # Show containers
