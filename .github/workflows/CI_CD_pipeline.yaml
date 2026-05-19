@@ -11,24 +11,22 @@ jobs:
         name: CI Pipeline
         uses:  ./.github/workflows/ci.yml
         secrets: inherit
-    
-    Terraform:
-        name: Terraform Infra
-        uses:  ./.github/workflows/terraform_infra.yaml
-        secrets: inherit
-    
     manifest-bump:
         name: Menifest bump
-        needs: Terraform
+        needs: CI
         uses: ./.github/workflows/cd-k8s.yml
         secrets: inherit
     
     deploy:
         name: Kubernetes Deployment
-        needs: manifest-bump
+        needs: [manifest-bump , CI]
         uses: ./.github/workflows/cd.yml
         secrets: inherit
-    
+     
+    Terraform:
+        name: Terraform Infra
+        uses:  ./.github/workflows/terraform_infra.yaml
+        secrets: inherit
     
     
     
