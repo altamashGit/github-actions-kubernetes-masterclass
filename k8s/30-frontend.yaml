@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: altamsh/skillpulse-frontend:
+          image: altamsh/skillpulse-frontend:e01b529f0e318d94aad962d9c5ce3b4bc9bebb3d
           imagePullPolicy: Always
           ports:
             - name: http
