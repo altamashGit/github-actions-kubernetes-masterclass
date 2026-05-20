@@ -11,36 +11,19 @@ COPY js ./js
 COPY nginx.conf ./nginx.conf
 
 ########################################
-# Stage 2: Secure Production Runtime
+# Stage 2: Production Runtime
 ########################################
 FROM nginx:alpine-slim
 
-# Switch to root
-USER root
-
-# Update vulnerable Alpine packages
 RUN apk update && apk upgrade --no-cache
 
-# Remove default content
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy application assets
 COPY --from=builder /app/index.html /usr/share/nginx/html/index.html
 COPY --from=builder /app/css /usr/share/nginx/html/css
 COPY --from=builder /app/js /usr/share/nginx/html/js
 
-# Copy nginx config
 COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Fix permissions
-RUN chown -R 101:101 /usr/share/nginx/html \
-    /etc/nginx/conf.d \
-    /var/cache/nginx \
-    /var/run \
-    /var/log/nginx
-
-# # Drop privileges
-# USER 101:101
 
 EXPOSE 80
 
