@@ -44,7 +44,7 @@ jobs:
             git checkout $BRANCH
             git reset --hard origin/$BRANCH
 
-            # Restart application
+            # Restart applicationn
             # kind create cluster --config k8s/kind-config.yaml --name skillpulse
             # Restart application
             CLUSTER_NAME="skillpulse"
