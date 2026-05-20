@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: test
-
+ ## Set up
       - name: Pin backend + frontend images to commit SHA
         env:
           SHA: ${{ inputs.sha }}
