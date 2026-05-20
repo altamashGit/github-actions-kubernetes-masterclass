@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: test
 
       - name: Pin backend + frontend images to commit SHA
         env:
