@@ -39,8 +39,8 @@ RUN chown -R 101:101 /usr/share/nginx/html \
     /var/run \
     /var/log/nginx
 
-# Drop privileges
-USER 101:101
+# # Drop privileges
+# USER 101:101
 
 EXPOSE 80
 
