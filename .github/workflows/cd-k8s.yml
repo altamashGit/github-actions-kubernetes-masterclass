@@ -2,6 +2,10 @@ name: CD (kind_cluster_manifest_bump)
 
 on:
   workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
   # workflow_run:
   #   workflows: ["CI"]
   #   types: 
@@ -21,7 +25,7 @@ jobs:
 
       - name: Pin backend + frontend images to commit SHA
         env:
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          SHA: ${{ inputs.sha }}
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           if [ -z "$DOCKER_USER" ]; then
@@ -33,7 +37,7 @@ jobs:
 
       - name: Commit + push if changed
         env:
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          SHA: ${{ inputs.sha }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
