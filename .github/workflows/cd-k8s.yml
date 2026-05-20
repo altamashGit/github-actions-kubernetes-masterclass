@@ -1,4 +1,4 @@
-name: CD (kind_cluster_manifest_bump)
+name: manifest_bump
 
 on:
   workflow_call:
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: test
+          ref: ${{ github.ref_name }}
  ## Set up
       - name: Pin backend + frontend images to commit SHA
         env:

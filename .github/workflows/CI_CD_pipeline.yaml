@@ -17,11 +17,16 @@ jobs:
     manifest-bump:
         needs: CI
         uses: ./.github/workflows/cd-k8s.yml
+        with:
+            sha: ${{ github.sha }}
         secrets: inherit
     
     deploy:
         name: Kubernetes Deployment
-        needs: CI
+        needs:
+         - CI
+         - manifest-bump
+
         uses: ./.github/workflows/cd.yml
         secrets: inherit
      
