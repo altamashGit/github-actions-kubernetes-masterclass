@@ -32,9 +32,12 @@ COPY --from=builder /app/js /usr/share/nginx/html/js
 # Copy nginx config
 COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Fix ownership
+# Fix permissions
 RUN chown -R 101:101 /usr/share/nginx/html \
-    && chown -R 101:101 /etc/nginx/conf.d
+    /etc/nginx/conf.d \
+    /var/cache/nginx \
+    /var/run \
+    /var/log/nginx
 
 # Drop privileges
 USER 101:101
