@@ -13,7 +13,7 @@ COPY nginx.conf ./nginx.conf
 ########################################
 # Stage 2: Secure Production Runtime
 ########################################
-FROM nginxinc/nginx-unprivileged:stable-alpine
+FROM nginxinc/nginx-unprivileged:1.29-alpine
 
 # Switch to root
 USER root
