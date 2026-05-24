@@ -41,6 +41,7 @@ jobs:
   Unit-Tests:
       name: Unit Tests
       runs-on: ubuntu-latest
+      
 
       steps:
         # Checkout Repository
@@ -64,6 +65,7 @@ jobs:
   #### ---------------------------------
 
   Dockerfile-Lint:
+      name: Docker Linting
       runs-on: ubuntu-latest
 
       steps:
@@ -86,7 +88,10 @@ jobs:
     #### ---------------------------------
   Trivy-Security-Scan:
       name: Build Docker Images and Run Trivy Scan
-      needs: [Unit-Tests,Secret-Scan,Dockerfile-Lint]
+      needs:
+        - Secret-Scan
+        - Unit-Tests
+        - Dockerfile-Lint
       runs-on: ubuntu-latest
 
       steps:
