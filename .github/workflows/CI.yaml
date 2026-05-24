@@ -1,0 +1,228 @@
+name: CI For ECR
+
+on:
+   push:
+     branches:
+       - skillpulse-aws-ecs-platform
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true   # understand concept
+
+# env:
+#   REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+jobs:
+#### ---------------------------------
+  ## Git Leak scan
+#### ----------------------------------
+
+ Secret_Scan:
+    name: GitLeaks Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout Repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+           fetch-depth: 0
+
+      # Run GitLeaks
+      - name: Run GitLeaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+Unit_Tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout Repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # Run Backend Tests
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: |
+          go test ./...
+
+#### ---------------------------------
+    ## Hadolint Dockerfile Scan
+#### ---------------------------------
+
+Dockerfile_Lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Backend Dockerfile Scann
+      - name: Scan Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+
+      # Frontend Dockerfile Scan
+      - name: Scan Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+  #### ---------------------------------
+    ## Docker Image Trivy Scan
+  #### ---------------------------------
+Trivy_Security_Scan:
+    name: Build Docker Images and Run Trivy Scan
+    needs: [Unit_Tests,Secret_Scan,Dockerfile_Lint]
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Checkout Repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Setup Docker Buildx
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build Backend Docker Image
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t skillpulse-backend ./backend
+      # Build Frontend Docker Image
+      - name: Build Frontend Docker Image
+        run: |
+          docker build -t skillpulse-frontend ./frontend
+      # Trivy Scan Backend Image
+      - name: Trivy Scan Backend Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: skillpulse-backend
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          cache: 'true'
+
+      # Trivy Scan Frontend Image
+      - name: Trivy Scan Frontend Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: skillpulse-frontend
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          cache: 'true'
+
+  #### ---------------------------------
+    ## Build Backend Images and push to ECR
+  #### ---------------------------------
+Backend-Build-Push:
+    name: Build Docker Images and push to docker hub
+    needs: Trivy_Security_Scan
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    # 1. Configure AWS credentials using OIDC
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.Assume_Role }}  # Open ID Connect OIDC STS
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    # 2. Log in to Amazon ECR
+    - name: Login to Amazon ECR Private
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@
+      
+      # Tag
+    - name: Set image tag
+      id: vars
+      run: |
+       echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+
+    # 3. Build, tag, and push the image
+    - name: Build, tag, and push docker image to Amazon ECR
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: skillpulse-backend
+        IMAGE_TAG: ${{ steps.vars.outputs.sha_short }}
+      uses: docker/build-push-action@v6
+      run: |
+        docker build -t \
+          $REGISTRY/$REPOSITORY:$IMAGE_TAG ./backend \
+          $REGISTRY/$REPOSITORY:latest ./backend \
+
+        docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        docker push $REGISTRY/$REPOSITORY:latest
+
+
+
+#### ---------------------------------
+    ## Build Frontend Images and push to ECR
+#### ---------------------------------
+
+Frontend-Build-Push:
+    name: Build Docker Images and push to docker hub
+    needs: Trivy_Security_Scan
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    # 1. Configure AWS credentials using OIDC (Recommended)
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.Assume_Role }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+       # Tag
+    - name: Set image tag
+      id: vars
+      run: |
+       echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+    # 2. Log in to Amazon ECR
+    - name: Login to Amazon ECR Private
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # 3. Build, tag, and push the image
+    - name: Build, tag, and push docker image to Amazon ECR
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: skillpulse-frontend
+        IMAGE_TAG: ${{ steps.vars.outputs.sha_short }}
+      uses: docker/build-push-action@v6
+      run: |
+        docker build -t \ 
+          $REGISTRY/$REPOSITORY:$IMAGE_TAG ./frontend \
+          $REGISTRY/$REPOSITORY:latest ./frontend \
+
+        docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        docker push $REGISTRY/$REPOSITORY:latest
