@@ -78,7 +78,7 @@ jobs:
           with:
             dockerfile: backend/Dockerfile
 
-        # Frontend Dockerfile Scan
+        # Frontend Dockerfile Scan#
         - name: Scan Frontend Dockerfile
           uses: hadolint/hadolint-action@v3.1.0
           with:
