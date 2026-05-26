@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: staging-deployment
-  cancel-in-progress: true   # understand concept
+  cancel-in-progress: true   # understand concept [Done]
 
 # env:
 #   REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
