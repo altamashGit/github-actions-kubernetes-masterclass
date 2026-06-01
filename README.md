@@ -1,393 +1,799 @@
-# SkillPulse — GitHub Actions & Kubernetes Masterclass
+# 🎯 SkillPulse — Production-Grade AWS ECS DevOps Platform
 
-A small, real application with a real CI/CD pipeline. The app — SkillPulse — lets you track skills you're learning and the hours you put in. The point isn't the app. The point is everything around it: how a single `git push` becomes a running update on a server in under two minutes, with no human pressing any button.
+[![AWS Fargate](https://img.shields.io/badge/AWS-ECS%20Fargate-orange?style=for-the-badge&logo=amazon-aws)](https://aws.amazon.com/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-blue?style=for-the-badge&logo=docker)](https://www.docker.com/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-black?style=for-the-badge&logo=github-actions)](https://github.com/features/actions)
+[![Nginx](https://img.shields.io/badge/Nginx-Reverse%20Proxy-green?style=for-the-badge&logo=nginx)](https://www.nginx.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-RDS-blue?style=for-the-badge&logo=mysql)](https://aws.amazon.com/rds/)
+[![SSL](https://img.shields.io/badge/SSL-AWS%20ACM-brightgreen?style=for-the-badge&logo=amazon-aws)](https://aws.amazon.com/certificate-manager/)
+[![HTTPS](https://img.shields.io/badge/HTTPS-Live-success?style=for-the-badge&logo=letsencrypt)](https://skillpulse.altamash.cloud)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-This repo is the working demo for the **TrainWithShubham GitHub Actions & Kubernetes Masterclass**.
+### 🌍 Live Deployment
 
-> **New here? Two beginner-friendly companion guides:**
->
-> - [`docs/skillpulse-cicd-guide.pdf`](docs/skillpulse-cicd-guide.pdf) — chapter one. 29 pages on the GitHub Actions pipeline: DevOps foundations, CI/CD, containers, deploying to a real EC2, plus resume + interview prep.
-> - [`docs/skillpulse-kubernetes-guide.pdf`](docs/skillpulse-kubernetes-guide.pdf) — chapter two. 32 pages on running this app on a local `kind` cluster: Kubernetes primitives, manifest walkthrough, the dev loop, real failures we hit (arch mismatches, port collisions), interview prep.
+> **[https://skillpulse.altamash.cloud](https://skillpulse.altamash.cloud)**
+> Secured with AWS ACM SSL Certificate · Custom domain via CNAME routing to ALB
 
----
+## 📌 Overview
 
-## Why DevOps matters
+Modern organizations require scalable, secure, and automated deployment platforms to deliver applications efficiently. **SkillPulse** is a cloud-native web application designed and deployed using a production-style cloud infrastructure on AWS and DevOps best practices.
 
-For most of software's history, the people who *wrote* software and the people who *ran* it were two different teams with two different goals.
-
-- Developers wanted to ship features.
-- Operations wanted stability.
-
-The fastest way for ops to be stable was to slow developers down. The fastest way for developers to ship was to throw code over the wall. Both teams were right. Both teams were also miserable. And the customer paid the price — releases happened once a quarter, every release was scary, and bugs took weeks to fix.
-
-DevOps is the cultural and technical answer to that: *the same team owns the change all the way to production, and tooling makes that safe.* It's not a job title. It's a way of working that says small, frequent, automated, and reversible beats big, rare, manual, and irreversible — every time.
-
-When DevOps is working you can tell because:
-
-- **Deploys are boring.** Friday afternoon, Monday morning, doesn't matter.
-- **Rollbacks are cheap.** A bad deploy is a 30-second fix, not an incident.
-- **Feedback is fast.** A broken commit fails CI in minutes, not "after QA next sprint."
-- **Ownership is clear.** The person who wrote the code is the person who watches it ship.
-
-You get there by automating the path from a developer's laptop to production. That automation is called a **pipeline**.
+This project simulates how real-world applications are deployed in enterprise environments, focusing on private networking patterns, container orchestration, automated CI/CD pipelines, runtime secrets management, and centralized monitoring.
 
 ---
 
-## Why CI/CD is the heart of DevOps
+## 🏗️ Architecture Design
 
-CI/CD is two ideas wearing one acronym.
+Rather than deploying all resources publicly, the infrastructure was designed using a **layered security model** to restrict the blast radius and enforce network isolation.
 
-- **Continuous Integration** — every change, from every developer, gets built and tested automatically the moment it lands. You catch breakage in minutes, not days. Merge conflicts shrink because nobody's branch lives for two weeks.
-- **Continuous Delivery / Deployment** — every change that passes CI is automatically packaged and shipped — to staging, or all the way to production. There is no "deploy day." Every commit is a candidate release.
-
-The reason this matters: the cost of fixing a bug grows with the time between writing it and finding it. CI/CD shortens that gap to minutes. The reason it's hard: the only way to make it work is to *automate everything*. Build, test, package, deploy, verify. No "just run this script on my laptop" steps. If a human has to remember it, it will eventually be forgotten — and then it will fail at 2 a.m.
-
----
-
-## Why GitHub Actions
-
-A pipeline needs a runner — something that watches your repo, executes your build/test/deploy steps, and reports back. Historically that meant standing up a Jenkins server, paying for CircleCI, or wiring something custom. All of those still work; none of them are the lowest-friction option in 2026.
-
-GitHub Actions wins on three things:
-
-1. **It lives where the code lives.** No separate server, no separate auth, no separate UI. Your `.github/workflows/*.yml` files are part of the repo — they evolve with the code, get reviewed in the same PRs, and survive every clone.
-2. **It's free for public repos and generous for private ones.** A complete CI/CD pipeline costs zero rupees to start.
-3. **The Marketplace is enormous.** Need to SSH into a server? `appleboy/ssh-action`. Need to log in to Docker Hub? `docker/login-action`. You compose pre-built blocks instead of writing bash from scratch.
-
-The trade-off is GitHub lock-in. For most teams, that's a fair price for the integration.
-
----
-
-## What this project demonstrates
-
-A real pipeline, end to end, in roughly 50 lines of YAML.
-
-```
-┌─────────────┐     git push        ┌──────────────────┐
-│  Developer  ├────────────────────▶│  GitHub Repo     │
-└─────────────┘                     └────────┬─────────┘
-                                             │ on: push (main)
-                                             ▼
-                                    ┌──────────────────┐
-                                    │  CI Workflow     │
-                                    │  - build images  │
-                                    │  - tag :sha      │
-                                    │  - tag :latest   │
-                                    │  - push to Hub   │
-                                    └────────┬─────────┘
-                                             │ workflow_run: success
-                                             ▼
-                                    ┌──────────────────┐
-                                    │  CD Workflow     │
-                                    │  - SSH to EC2    │
-                                    │  - git pull      │
-                                    │  - compose pull  │
-                                    │  - compose up -d │
-                                    └────────┬─────────┘
-                                             │
-                                             ▼
-                                    ┌──────────────────┐
-                                    │  EC2: live app   │
-                                    │  http://<host>   │
-                                    └──────────────────┘
+```text
+              [ Browser: https://skillpulse.altamash.cloud ]
+                                │
+                    DNS CNAME Record (Port 443)
+                                │
+                                ▼
+                   ┌────────────────────────┐
+                   │  AWS ACM SSL Certificate│
+                   │  (TLS Termination)      │
+                   └───────────┬────────────┘
+                               │
+                               ▼
+         ┌──────────────────────────────────────────────┐
+         │    Application Load Balancer (ALB)           │
+         │    Listener: 443 (HTTPS) + 80→443 Redirect  │
+         └──────────────┬────────────────┬──────────────┘
+                        │                │
+          Path: /       │                │   Path: /api/*
+                        ▼                ▼
+         ┌───────────────────┐    ┌───────────────────┐
+         │   Frontend ECS    │    │    Backend ECS    │
+         │  Service (Nginx)  │    │   Service (Go)    │
+         └───────────────────┘    └─────────┬─────────┘
+                                            │
+                                            ▼
+                                  ┌───────────────────┐
+                                  │ Amazon RDS MySQL  │
+                                  │    (Isolated)     │
+                                  └───────────────────┘
 ```
 
-### CI — `.github/workflows/ci.yml`
+> 📸 **Architecture HLD Map**
 
-Triggered on every push to `main`. It does four things:
+<img width="1747" height="982" alt="ECS_final_CI_CD_Architecture" src="https://github.com/user-attachments/assets/438bf49f-fa46-43da-a31e-522f0276c067" />
 
-1. **Checks out the code.** A fresh clone in a clean Ubuntu runner — no laptop state to leak.
-2. **Builds two Docker images.** A Go backend and an Nginx-served frontend. Both are multi-stage so the final images are small.
-3. **Tags each image twice.** With the commit SHA (`:abc1234…`) and with `:latest`. The SHA tag is your rollback handle — you can always pin a deploy to an exact commit. The `:latest` tag is what production pulls.
-4. **Pushes both to Docker Hub.** Authenticated with secrets (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`) — never plaintext credentials in the repo.
 
-The non-obvious lesson: **CI doesn't just test your code. It produces an artifact.** That artifact — the image — is what production runs. If the artifact is built consistently in CI, it's the same in dev, staging, and prod. "Works on my machine" stops being a possibility.
+### 🏢 Layer Breakdown
 
-### CD — `.github/workflows/cd.yml`
-
-Triggered automatically when CI completes successfully (`workflow_run` + a `conclusion == 'success'` gate). Skipped if CI failed — you cannot deploy a broken build.
-
-It SSHes into an EC2 instance and runs:
-
-```bash
-if [ ! -d ~/skillpulse ]; then
-  git clone <this repo> ~/skillpulse
-fi
-cd ~/skillpulse
-git pull origin main
-[ -f .env ] || { echo "ERROR: .env missing"; exit 1; }
-docker compose pull
-docker compose up -d
-docker image prune -f
-```
-
-Every line earns its place:
-
-- The `if [ ! -d ... ]` makes the script **idempotent** — the same script runs whether it's the first deploy or the hundredth.
-- The `.env` check fails *loudly* with a useful message instead of letting `docker compose` produce a cryptic error about missing variables.
-- `docker compose pull` brings in the image you just built. `up -d` only recreates containers whose image actually changed — backend and DB don't get bounced if you only edited frontend HTML.
-- `docker image prune -f` keeps the EC2 disk from filling up with old image layers over weeks of deploys.
-
-### Secrets used
-
-| Secret | What it is |
-|---|---|
-| `DOCKERHUB_USERNAME` | Your Docker Hub account name |
-| `DOCKERHUB_TOKEN` | A Docker Hub Personal Access Token with read+write scope |
-| `EC2_HOST` | Public IP or DNS of the deploy target |
-| `EC2_USER` | Linux user on the EC2 (typically `ubuntu`) |
-| `EC2_SSH_KEY` | Private key contents — paste the entire `.pem` file as the secret value |
-
-Set them at `Settings → Secrets and variables → Actions` on your fork.
+- **Public Layer:** Contains only internet-facing resources — the Application Load Balancer (ALB), NAT Gateway, and Internet Gateway. These handle incoming and outgoing internet traffic while shielding internal services.
+- **Private Application Layer:** Core compute workloads run in private subnets via AWS ECS Fargate. The Frontend and Backend containers are completely inaccessible directly from the internet and receive traffic exclusively through the ALB.
+- **Private Database Layer:** The Amazon RDS MySQL database resides in isolated private database subnets. Only backend compute services are permitted to communicate with the database, significantly reducing the attack surface.
 
 ---
 
-## The application itself
+## 🛠️ Infrastructure Configuration Matrix
 
-A three-tier app — kept tiny on purpose so the pipeline is the star.
+### 🌐 Networking & Compute
 
-| Tier | Tech | What it does |
+| Component | Configuration Pattern | Purpose / Core Features |
 |---|---|---|
-| Frontend | HTML + CSS + vanilla JS, served by Nginx | UI for adding skills and logging hours |
-| Backend | Go 1.26 + Gin | REST API at `/api/...` |
-| Database | MySQL 8.4 | Stores skills and learning logs |
+| **VPC** | Custom VPC Setup | Multi-AZ architecture spanning isolated tiers |
+| **Subnets** | 2 Public, 2 Private App, 2 Private DB | Ensures high availability across distinct Availability Zones |
+| **Gateways** | 1 Internet Gateway, 1 NAT Gateway | Manages secure public ingress and outbound private transitions |
+| **ECS Launch Type** | AWS Fargate (Serverless) | Eliminates underlying EC2 host management overhead |
+| **Container Registry** | Amazon ECR | Secure, highly available container image management |
+| **Custom Domain** | `skillpulse.altamash.cloud` | CNAME record pointing to ALB DNS name |
+| **SSL Certificate** | AWS ACM (TLS 1.2/1.3) | Free managed certificate; auto-renewed, attached to ALB HTTPS listener |
 
-Nginx in the frontend image also reverse-proxies `/api/` and `/health` to the backend, so the public surface is a single port (`80`).
+### 🔒 Security, Storage & Observability
 
-API surface:
+| Component | Configuration Pattern | Purpose / Core Features |
+|---|---|---|
+| **Database Engine** | Amazon RDS MySQL | Situated strictly inside isolated database subnets |
+| **Database Access** | Restricted Security Groups | Whitelists ingress on Port 3306 exclusively from Backend ECS tasks |
+| **Secrets Engine** | AWS Secrets Manager | Secure storage; eliminates hardcoded variables at runtime |
+| **Access Control** | IAM Roles (Least Privilege) | Granular execution roles for safe resource interaction |
+| **Monitoring** | Amazon CloudWatch Logs | Centralized streaming for container stdout/stderr log aggregation |
 
+---
+
+## ⚙️ Automated CI/CD Pipeline
+
+The project implements a modern, zero-downtime continuous delivery strategy powered natively by GitHub Actions Workflow.
+
+```text
+Developer Push
+       │
+       ▼
+GitHub Actions ──► Docker Multi-stage Build ──► Amazon ECR Push
+                                                       │
+                                                       ▼
+Zero-Downtime Rolling Update ◄── AWS ECS Deployment Update
 ```
-GET    /api/skills              list skills + total hours
-POST   /api/skills              create skill
-GET    /api/skills/:id          one skill + its logs
-DELETE /api/skills/:id          delete skill (cascades logs)
-POST   /api/skills/:id/log      log a study session
-GET    /api/dashboard           summary counters
-GET    /health                  DB ping for healthchecks
+
+### Pipeline Features
+
+- **Automated Packaging:** Multi-stage Docker builds optimize overall file footprints and compile production-ready layers.
+- **ECR Image Versioning:** Builds are dynamically tagged and securely pushed to Amazon ECR.
+- **Orchestrated Deployments:** Automates standard rolling deployments to AWS ECS Fargate, ensuring updates happen with zero application downtime.
+
+> 📸 **CI/CD Pipeline — GitHub Actions Execution Log**
+
+<img width="1072" height="496" alt="Screenshot 2026-06-01 234131" src="https://github.com/user-attachments/assets/9f9ae0f4-5b0f-4903-bddd-588b57275624" />
+
+
+---
+
+## 🔐 Secrets Management
+
+All plain-text environment footprints have been decoupled. Database credentials and runtime configurations are managed inside AWS Secrets Manager and securely injected directly into the ECS containers during runtime via Task Definitions.
+
+### Managed Context Matrix
+
+```text
+├── DB_HOST
+├── DB_PORT
+├── DB_NAME
+├── DB_USER
+└── DB_PASSWORD
+```
+
+> 📸 **AWS Secrets Manager — Credential Store**
+
+<img width="975" height="570" alt="Screenshot 2026-05-25 033945" src="https://github.com/user-attachments/assets/31fed0b2-1b63-4649-ba6a-56f17d26ff20" />
+
+
+---
+
+## 📂 Project Structure
+
+```text
+SkillPulse/
+│
+├── backend/                  # Golang (Gin Framework) REST API
+│   ├── handlers/             # Endpoint Controller Logic
+│   ├── models/               # Entities & Data Mappings
+│   ├── database/             # Connection Pools & Drivers
+│   ├── Dockerfile            # Multi-stage Go Compiler Environment
+│   └── main.go               # App Bootstrapper
+│
+├── frontend/                 # Static Frontend UI Web Server
+│   ├── css/                  # Layout & Stylesheets
+│   ├── js/                   # App Interactive Client Logic
+│   ├── index.html            # Core Framework Window
+│   ├── nginx.conf            # Custom Nginx Reverse Proxy Config
+│   └── Dockerfile            # Lightweight Production Web Server
+│
+├── .github/                  # CI/CD Automation
+│   └── workflows/
+│       └── deploy.yml        # GitHub Actions Workflow Engine
+│
+└── README.md                 # Project Overview Document
 ```
 
 ---
 
-## Run it locally
+## 🌐 Load Balancer Routing
 
-```bash
-cp .env.example .env             # fill in DOCKERHUB_USERNAME (anything works for local)
-docker compose up -d --build
-```
+The Application Load Balancer (ALB) is configured with two listeners and path-based routing rules to handle HTTPS traffic securely and redirect all plain HTTP requests automatically.
 
-Open http://localhost. Backend port 8080 is intentionally not exposed — all traffic goes through Nginx, exactly like production.
+### Listeners
 
-To tear down:
+| Listener | Port | Protocol | Action |
+|---|---|---|---|
+| **HTTPS** | 443 | HTTPS | Forward to target groups via path rules |
+| **HTTP Redirect** | 80 | HTTP | Permanent 301 redirect → HTTPS (port 443) |
 
-```bash
-docker compose down -v           # -v also drops the MySQL volume
-```
+### Path-Based Routing Rules (HTTPS Listener)
+
+| Path Pattern | Target Group Destination | Service Mapping | Container Port |
+|---|---|---|---|
+| `/` | Frontend Target Group | Static Content Hosting (Nginx) | Port 80 |
+| `/api/*` | Backend Target Group | REST API Framework (Golang) | Port 8080 |
+
+> 📸 **ALB Listener Rules & Target Group Configuration**
+>
+> [ALB Listener Rules]
+
+<img width="1748" height="872" alt="ALB-listners" src="https://github.com/user-attachments/assets/1748db85-9381-473c-8f9b-b9efd954e5cf" />
+
+
+
+> [Target Groups]
+
+<img width="1748" height="826" alt="target-group" src="https://github.com/user-attachments/assets/a287eee8-25b9-4fa3-89fb-b0f4605f9139" />
+
 
 ---
 
-## Run on Kubernetes (kind)
+## 🗺️ Step-by-Step Deployment Walkthrough
 
-Same app, same images, same external port — but now every primitive a student would see in production: namespace, deployment, service, statefulset, configmap, secret, pvc.
+This section documents the complete infrastructure provisioning lifecycle, broken into three sequential build phases — from raw network foundation to live containerized services.
 
-**Prerequisites:** Docker Desktop running, plus `brew install kind kubectl`.
+---
 
-```bash
-make up                          # creates the kind cluster + applies manifests
-# visit http://localhost:8888
-make down                        # deletes the cluster (and the MySQL data with it)
+### 🔵 Phase 1 — Network Foundation & Security Hardening
+
+> *Laying the ground rules: isolation, routing, and zero-trust access controls before a single container runs.*
+
+#### 🌐 VPC & Subnet Architecture
+
+```text
+ ┌─────────────────────────────────────────────────────────────────┐
+ │                        Custom VPC                               │
+ │                                                                 │
+ │   ┌─────────────────────────┐  ┌──────────────────────────┐    │
+ │   │     Public Subnets      │  │   Private App Subnets    │    │
+ │   │  (AZ-1a)   (AZ-1b)     │  │   (AZ-1a)    (AZ-1b)    │    │
+ │   │  IGW ───► NAT GW        │  │   ECS Tasks (Fargate)   │    │
+ │   └─────────────────────────┘  └──────────────────────────┘    │
+ │                                                                 │
+ │                   ┌──────────────────────────┐                  │
+ │                   │  Private DB Subnets       │                  │
+ │                   │  (AZ-1a)    (AZ-1b)      │                  │
+ │                   │  RDS MySQL (No IGW/NAT)  │                  │
+ │                   └──────────────────────────┘                  │
+ └─────────────────────────────────────────────────────────────────┘
 ```
 
-What `make up` actually runs, in order:
+| Resource | Count | Notes |
+|---|---|---|
+| **VPC** | 1 | Custom CIDR block; Internet Gateway attached |
+| **Public Subnets** | 2 | Hosts ALB, NAT Gateway — spans 2 AZs |
+| **Private App Subnets** | 2 | Hosts ECS Fargate tasks — no direct internet exposure |
+| **Private DB Subnets** | 2 | Hosts RDS MySQL — fully isolated, no internet path |
+| **Internet Gateway** | 1 | Attached to VPC; routes public inbound/outbound traffic |
+| **NAT Gateway** | 1 | Deployed in public subnet; enables private outbound-only egress |
+| **Route Tables** | 3 | Separate tables per tier with explicit subnet associations |
 
-```bash
-docker build -t trainwithshubham/skillpulse-backend:latest  ./backend
-docker build -t trainwithshubham/skillpulse-frontend:latest ./frontend
-kind create cluster --config k8s/kind-config.yaml --name skillpulse
-kind load docker-image trainwithshubham/skillpulse-backend:latest  --name skillpulse
-kind load docker-image trainwithshubham/skillpulse-frontend:latest --name skillpulse
-kubectl apply -f k8s/00-namespace.yaml \
-              -f k8s/10-mysql.yaml \
-              -f k8s/20-backend.yaml \
-              -f k8s/30-frontend.yaml
-kubectl rollout status statefulset/mysql   -n skillpulse --timeout=180s
-kubectl rollout status deployment/backend  -n skillpulse --timeout=120s
-kubectl rollout status deployment/frontend -n skillpulse --timeout=60s
+> 📸 **VPC — Flow Architecture**
+
+<img width="1599" height="871" alt="vpc-creation" src="https://github.com/user-attachments/assets/f3257580-882d-4dd2-81ca-c88f6c5621a2" />
+
+
+#### 🔒 Security Groups — Tight-Coupled Port Rules
+
+Every Security Group was configured with the principle of **minimum port exposure** and **source-locked ingress** — no wildcard sources unless strictly unavoidable.
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Security Group Design                            │
+│                                                                      │
+│  SG-ALB          → Inbound: 80, 443 from 0.0.0.0/0 (internet)      │
+│  SG-ECS-Frontend → Inbound: 80   from SG-ALB only                   │
+│  SG-ECS-Backend  → Inbound: 8080 from SG-ALB only                   │
+│  SG-RDS          → Inbound: 3306 from SG-ECS-Backend only           │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-Notes on this flow:
+| Security Group | Allowed Port | Allowed Source | Purpose |
+|---|---|---|---|
+| `SG-ALB` | 80 | `0.0.0.0/0` | HTTP ingress — immediately redirected to HTTPS |
+| `SG-ALB` | 443 | `0.0.0.0/0` | HTTPS ingress — TLS termination with ACM cert |
+| `SG-ECS-Frontend` | 80 | `SG-ALB` | ALB → Frontend container (internal, post-TLS) |
+| `SG-ECS-Backend` | 8080 | `SG-ALB` | ALB → Backend API container (internal, post-TLS) |
+| `SG-RDS` | 3306 | `SG-ECS-Backend` | Backend → MySQL database only |
 
-- **`docker build` runs on your laptop**, producing images for your host's architecture (Apple Silicon → arm64; Intel/Linux → amd64). The cluster never has to deal with multi-arch.
-- **`kind load docker-image`** copies each image into the kind node's containerd. `imagePullPolicy: IfNotPresent` on the Deployments means k8s reuses the loaded image and never tries to pull from Docker Hub.
-- **`kind-config.yaml`** lives alongside the manifests for proximity, but it's a `kind` config — not a Kubernetes resource — so it's fed to `kind create cluster`, not `kubectl apply`.
+---
 
-Inner-loop after editing code: `make restart` rebuilds the images, reloads them into the cluster, and rolls the Deployments.
+### 🟠 Phase 2 — Container Registry, Load Balancer, Database & Secrets
 
-### How traffic flows
+> *Provisioning the core delivery infrastructure: images, routing, data, and credentials.*
 
-The cluster has **three nodes**: one control-plane and two workers (`skillpulse-worker`, `skillpulse-worker2`). Workloads schedule onto the workers — the control-plane is tainted `NoSchedule` by default, so it stays focused on the API server, scheduler, and controller-manager.
+#### 📦 Amazon ECR — Container Image Repositories
 
+Two dedicated repositories were created to store and version containerized application builds:
+
+```text
+Amazon ECR
+├── skillpulse-frontend     ← Nginx static web server image
+└── skillpulse-backend      ← Golang REST API image
 ```
-host browser            kind cluster (1 control-plane + 2 workers)
-http://localhost:8888
+
+Both repositories are private, region-scoped, and accessed exclusively by ECS Task Execution Roles via IAM policies.
+
+> 📸 **ECR — Container Image Repositories**
+> [ECR Repositories]
+
+<img width="1868" height="592" alt="ECR-Docker-image" src="https://github.com/user-attachments/assets/9b53d580-ac69-4fdc-bb82-b7d0d0862dcb" />
+
+
+---
+
+#### ⚖️ Application Load Balancer — Path-Based Routing
+
+The ALB uses **IP-mode Target Groups** to route traffic directly to ECS Fargate task IPs (not EC2 instances), enabling seamless serverless integration.
+
+```text
+ALB Listener (Port 80)
         │
-        ▼ (kind extraPortMappings on control-plane: hostPort 8888 → nodePort 30080)
-   Service frontend (NodePort 30080)  — reachable on every node, kube-proxy routes
+        ├── Rule 1: Path = "/"        ──►  Target Group: Frontend  (Port 80)
         │
-        ▼
-   Deployment frontend (nginx + static)  — runs on whichever worker the scheduler picks
-        │ proxy_pass http://backend:8080  (same hostname as docker-compose)
-        ▼
-   Service backend (ClusterIP 8080)
-        │
-        ▼
-   Deployment backend (Go + Gin)
-        │ DB_HOST=mysql
-        ▼
-   Service mysql (Headless 3306)
-        │
-        ▼
-   StatefulSet mysql + 1Gi PVC + ConfigMap-mounted init.sql
+        └── Rule 2: Path = "/api/*"   ──►  Target Group: Backend   (Port 8080)
 ```
 
-### Manifest layout
+| Target Group | Target Type | Routing Rule | Backend Port | Health Check Path |
+|---|---|---|---|---|
+| `tg-frontend` | IP | `/` (default) | 80 | `/` |
+| `tg-backend` | IP | `/api/*` | 8080 | `/api/health` |
 
+> **Why IP Target Type?** ECS Fargate tasks have no fixed EC2 host. IP-mode target groups register the dynamic ENI IP of each Fargate task directly, enabling proper load balancing without instance management.
+
+---
+
+#### 🔒 Custom Domain & SSL — HTTPS with AWS ACM + CNAME
+
+The application is served over a verified custom domain with end-to-end TLS encryption, provisioned entirely through AWS-native tooling at zero certificate cost.
+
+**Traffic Flow: Browser → DNS → ALB → ECS**
+
+```text
+ Browser requests: https://skillpulse.altamash.cloud
+        │
+        │  DNS Lookup
+        ▼
+ ┌──────────────────────────────────────────────────────┐
+ │  DNS Provider (altamash.cloud)                       │
+ │                                                      │
+ │  Record Type : CNAME                                 │
+ │  Host        : skillpulse                            │
+ │  Points To   : <alb-dns-name>.elb.amazonaws.com      │
+ └──────────────────────┬───────────────────────────────┘
+                        │  Resolves to ALB
+                        ▼
+ ┌──────────────────────────────────────────────────────┐
+ │  Application Load Balancer                           │
+ │                                                      │
+ │  Listener :443 (HTTPS)                               │
+ │  Certificate: AWS ACM → skillpulse.altamash.cloud    │
+ │  TLS Termination at ALB edge                         │
+ │  HTTP :80 → Permanent 301 Redirect to HTTPS          │
+ └──────────────────────┬───────────────────────────────┘
+                        │  Decrypted internally
+                        ▼
+              ECS Fargate Services (Private Subnets)
 ```
-k8s/
-  kind-config.yaml      cluster shape: 1 control-plane + 2 workers, host 8888 → node 30080
-  00-namespace.yaml     namespace: skillpulse
-  10-mysql.yaml         Secret + ConfigMap (init.sql) + headless Service + StatefulSet + 1Gi PVC
-  20-backend.yaml       Deployment + ClusterIP Service, env from Secret, /health probes
-  30-frontend.yaml      Deployment + NodePort Service (30080), / probes
+
+**AWS Certificate Manager (ACM) — Provisioning Steps**
+
+```text
+Step 1 → Request public certificate for skillpulse.altamash.cloud in ACM
+Step 2 → ACM provides a CNAME validation record (name + value)
+Step 3 → Add ACM CNAME validation record to DNS provider
+Step 4 → ACM validates domain ownership → Certificate status: ISSUED
+Step 5 → Attach issued certificate to ALB HTTPS listener (port 443)
+Step 6 → Add HTTP (port 80) listener rule → redirect to HTTPS
 ```
 
-### Useful commands
-
-| Command | What it does |
+| Property | Value |
 |---|---|
-| `make status` | One-screen view of pods, services, endpoints |
-| `make logs` | Tail all three workloads at once |
-| `make mysql` | Open a `mysql` shell in the StatefulSet pod |
-| `make restart` | Roll backend + frontend (e.g. after pushing a new image) |
+| **Certificate Authority** | AWS Certificate Manager (ACM) |
+| **Certificate Type** | Public SSL/TLS |
+| **Domain Covered** | `skillpulse.altamash.cloud` |
+| **Validation Method** | DNS Validation via CNAME record |
+| **Attached To** | ALB HTTPS Listener (Port 443) |
+| **TLS Termination Point** | ALB (traffic to ECS is internal) |
+| **HTTP → HTTPS Redirect** | Port 80 → 301 Permanent Redirect |
+| **Auto-Renewal** | Yes — ACM manages renewal automatically |
+| **Cost** | Free (ACM public certificates are no-cost) |
 
-### Smoke test
+> 📸 **AWS ACM — Issued SSL Certificate**
+
+> [ACM Certificate]
+
+<img width="1736" height="865" alt="Screenshot 2026-05-31 202347" src="https://github.com/user-attachments/assets/f25dbbd5-c9c8-45e1-b874-eda3d612f92d" />
+
+> 📸 **Domain Mapped — skillpulse.altamash.clloud**
+
+<img width="1211" height="97" alt="Screenshot 2026-05-31 202323" src="https://github.com/user-attachments/assets/d5494603-0100-4543-b13c-09d9bda270c7" />
+
+
+
+---
+
+#### 🗄️ Amazon RDS MySQL — Isolated Database Provisioning
+
+The RDS instance was provisioned strictly inside the **private DB subnets** with all public access disabled.
+
+```text
+ ┌────────────────────────────────────────────────────────────────┐
+ │                  RDS Deployment Constraints                    │
+ │                                                                │
+ │  ✗  No Public IP assigned                                      │
+ │  ✗  No Internet Gateway route                                  │
+ │  ✗  No SSH / bastion direct access                             │
+ │  ✓  Accessible only via SG-ECS-Backend on port 3306           │
+ └────────────────────────────────────────────────────────────────┘
+```
+
+> 📸 **RDS MySQL Instance — Private Subnet Deployment**
+> [RDS Instance]
+
+<img width="1725" height="886" alt="RDS" src="https://github.com/user-attachments/assets/8379b06b-9cc7-46d1-bf8f-a35cc749072d" />
+
+
+**Database Import Procedure via AWS SSM Session Manager:**
+
+Since the RDS instance has no public access, data was imported through a secure SSM-tunneled session into an intermediary ECS task — avoiding any public exposure. The import sequence followed this pattern:
 
 ```bash
-curl http://localhost:8888/health                 # → {"status":"healthy"}
-curl http://localhost:8888/api/dashboard          # → seed-data counters
-curl -s http://localhost:8888/ | grep '<title>'   # → HTML title containing "SkillPulse"
+# 1. Start SSM session into a temporary ECS task (no SSH required)
+aws ecs execute-command --cluster skillpulse-cluster \
+  --task <TASK_ID> --container backend \
+  --interactive --command "/bin/sh"
+
+# 2. Connect to RDS from within the private network
+mysql -h <RDS_ENDPOINT> -u <DB_USER> -p
+
+# 3. Provision the database schema
+CREATE DATABASE skillpulse;
+
+# 4. Import dataset
+mysql -h <RDS_ENDPOINT> -u <DB_USER> -p skillpulse < data.sql
+
+# 5. Flush privileges and exit
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
-### Gotchas worth knowing
-
-- **Docker Desktop must be running.** `docker build`, `kind`, and `kubectl` all talk to the Docker daemon on your machine.
-- **First boot is slow.** The local-path provisioner has to materialise the PVC before MySQL starts. Expect 10–30s of `Pending` on `make up`'s first run.
-- **Host port collision.** If something else owns 8888 on the host, the cluster comes up but `curl localhost:8888` fails. Free the port — or change `hostPort` in `k8s/kind-config.yaml` and re-run `make down && make up`.
-- **No Docker Hub round-trip in this chapter.** Images are built locally and pushed into the kind node via `kind load`. Useful when you're iterating on code: `make restart` rebuilds + reloads + rolls without ever touching Docker Hub. (Production EKS/GKE clusters do pull from a registry — that's the next chapter.)
-
-### What's next
-
-This is the **kind chapter** — same app, real Kubernetes primitives, but limited to one local node and `NodePort` access. The next chapter graduates the same workload to:
-
-- An **Ingress** controller (nginx-ingress) so traffic enters via `Ingress` rules instead of NodePort.
-- **Helm or Kustomize** so the manifests stop being copy-pasted between environments.
-- A real **cloud cluster** (EKS / GKE / AKS) and CD that runs `kubectl apply` from the pipeline instead of `appleboy/ssh-action`.
+> ⚠️ **Security Note:** Database credentials were **never passed as plain-text flags** in production. All credential references were sourced from AWS Secrets Manager at runtime.
 
 ---
 
-## Continuous deployment to the kind cluster
+#### 🔑 AWS Secrets Manager — Runtime Credential Injection
 
-The new CD path doesn't `kubectl apply` from GitHub Actions — your kind cluster lives on your laptop, GitHub can't reach it. Instead, the pipeline takes the GitOps shape: **the repo is the source of truth, your cluster is one `git pull && make apply` away**.
+All sensitive database connection parameters are stored as a structured secret in AWS Secrets Manager and injected directly into ECS Task Definitions at container startup — eliminating any hardcoded environment variables.
 
-```
-git push to main
-    ↓
-CI: build images, push trainwithshubham/skillpulse-{backend,frontend}:{latest,<sha>}
-    ↓
-cd-k8s.yml: sed image: lines in k8s/20-backend.yaml + k8s/30-frontend.yaml
-            commit "deploy: pin backend+frontend to <short-sha>" to main as github-actions[bot]
-    ↓
-(you, locally):
-    git pull && make apply
-    ↓
-kind nodes pull the new :<sha> from Docker Hub → rolling update
-```
-
-### How to wire it up on your fork
-
-1. **Fork this repo + clone locally.** `make up` should work after that (see the [Run on Kubernetes (kind)](#run-on-kubernetes-kind) section).
-2. **Add two secrets** to your fork (`Settings → Secrets and variables → Actions`):
-
-   | Secret | Value |
-   |---|---|
-   | `DOCKERHUB_USERNAME` | your Docker Hub account name |
-   | `DOCKERHUB_TOKEN` | a Docker Hub Personal Access Token with Read & Write scope |
-
-3. **Set the repo variable** `DEPLOY_ENABLED = "true"` (`Settings → Variables → Actions`). Until this is `true`, CI builds without pushing and both CD workflows skip cleanly — the "dry run" state.
-4. **Push any code change** (not a `.md`, not under `k8s/` or `docs/` — those are deliberately ignored by CI). Watch the Actions tab:
-   - **CI** builds + pushes both images to Docker Hub.
-   - **CD (kind cluster — manifest bump)** commits a `deploy: pin backend+frontend to <sha>` change to main.
-5. **Pull and deploy**, on the laptop with the kind cluster:
-   ```bash
-   git pull
-   make apply
-   kubectl get pods -n skillpulse -o wide
-   ```
-   You'll see new pods with the bumped image rolling out. mysql untouched.
-
-### What about the EC2 path?
-
-The previous chapter's `cd.yml` is still in the repo — it SSHes into an EC2 and runs `docker compose up`. It's gated on the same `DEPLOY_ENABLED` variable plus three EC2 secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`). Skip those secrets and `cd.yml` will fail loudly when `DEPLOY_ENABLED=true`; that's expected — it's the previous chapter's deploy target, kept around as the masterclass artifact.
-
-### Break it on purpose to learn
-
-- **Push a commit that fails to build** → both CD workflows are *skipped*, not failed (the `if: success()` gate).
-- **Rotate the Docker Hub token** → next CI fails at the login step. You'll learn what an expired credential looks like in logs.
-- **Edit `k8s/20-backend.yaml`'s image tag by hand and push** → CI is *skipped* (paths-ignore), `cd-k8s.yml` does fire but the manifest is already pinned, so it no-ops and exits 0. That's the loop-protection working.
-
----
-
-## Project layout
-
-```
-backend/                Go service
-  Dockerfile            multi-stage: golang:1.26-alpine → alpine:3.23
-  main.go               wires routes, reads PORT env
-  database/db.go        connects to MySQL with retry-loop
-  handlers/             skills, logs, dashboard endpoints
-  models/               request/response structs
-
-frontend/               static UI + Nginx config
-  Dockerfile            FROM nginx:alpine, copies html/css/js + nginx.conf
-  index.html, css/, js/ vanilla — no build step
-  nginx.conf            serves the site, proxies /api/ to backend:8080
-
-mysql/init.sql          schema + seed data, mounted into the MySQL container
-
-docker-compose.yml      three services: db, backend, frontend
-.env.example            copy to .env
-
-.github/workflows/
-  ci.yml                build + push images on every main push
-  cd.yml                SSH + redeploy on CI success
+```text
+ Secret: skillpulse/db/credentials
+ ┌───────────────────────────────────────────┐
+ │  Key              │  Value                │
+ │─────────────────────────────────────────  │
+ │  DB_HOST          │  <rds-endpoint>       │
+ │  DB_PORT          │  3306                 │
+ │  DB_NAME          │  skillpulse           │
+ │  DB_USER          │  <username>           │
+ │  DB_PASSWORD      │  <password>           │
+ └───────────────────────────────────────────┘
+        │
+        ▼
+ ECS Task Definition → secretsFrom: arn:aws:secretsmanager:...
+        │
+        ▼
+ Container Environment (injected at runtime, never stored in image)
 ```
 
 ---
 
-## Where this goes next
+### 🟢 Phase 3 — ECS Cluster, Task Definitions & Service Deployment
 
-This is the **GitHub Actions** half of the masterclass. The pipeline currently deploys to a single EC2 via SSH + docker compose — a fine starting point, and the most common "first real pipeline" in the industry.
+> *Bringing the application to life: orchestrating containers on serverless Fargate infrastructure.*
 
-The Kubernetes half of the course evolves this same app onto a cluster:
+#### 🔐 IAM Roles — Task Execution Role & Task Role
 
-- Replace `docker compose` with manifests (Deployment, Service, Ingress).
-- Replace SSH-driven deploys with `kubectl apply` from CI, then with GitOps (Argo CD / Flux).
-- Add health checks, autoscaling, rolling updates with no downtime, secrets via Kubernetes Secrets or external managers.
-- Run the cluster on EKS / GKE / AKS or local (kind / minikube).
+ECS Fargate requires **two distinct IAM roles** per Task Definition. These are commonly confused but serve completely different purposes — one is for the AWS control plane, the other is for the running application itself.
 
-Same app. Same pipeline shape. Different runtime — and a lot more power.
+```text
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │                    ECS IAM Role Architecture                        │
+ │                                                                     │
+ │   Task Execution Role (Control Plane)                               │
+ │   └── Used BY: ECS Agent & Fargate infrastructure                  │
+ │       ├── Pull container image from Amazon ECR                      │
+ │       ├── Fetch secrets from AWS Secrets Manager                    │
+ │       └── Push logs to Amazon CloudWatch                            │
+ │                                                                     │
+ │   Task Role (Application Plane)                                     │
+ │   └── Used BY: Code running INSIDE the container                   │
+ │       ├── SSM Session Manager — ECS Exec (interactive shell)        │
+ │       └── Any AWS SDK calls made by the application at runtime      │
+ └─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Credits
+##### 🛠️ Task Execution Role — `skillpulse-execution-role`
 
-Built for the [TrainWithShubham](https://www.youtube.com/@TrainWithShubham) community. If this repo helped you understand a real CI/CD pipeline end to end, share it forward — that's how the community grows.
+This role is assumed by the **ECS control plane** before the container even starts. Without it, Fargate cannot pull your image from ECR or inject secrets into the container environment.
+
+| Permission | AWS Managed / Inline Policy | Purpose |
+|---|---|---|
+| `ecr:GetAuthorizationToken` | `AmazonECSTaskExecutionRolePolicy` | Authenticate to ECR registry |
+| `ecr:BatchGetImage` | `AmazonECSTaskExecutionRolePolicy` | Pull container image layers |
+| `ecr:GetDownloadUrlForLayer` | `AmazonECSTaskExecutionRolePolicy` | Download image layer blobs |
+| `secretsmanager:GetSecretValue` | Inline policy | Fetch DB credentials from Secrets Manager at startup |
+| `logs:CreateLogStream` | `AmazonECSTaskExecutionRolePolicy` | Create CloudWatch log stream |
+| `logs:PutLogEvents` | `AmazonECSTaskExecutionRolePolicy` | Ship container logs to CloudWatch |
+
+**Trust Policy — who can assume this role:**
+
+```json
+{
+  "Effect": "Allow",
+  "Principal": {
+    "Service": "ecs-tasks.amazonaws.com"
+  },
+  "Action": "sts:AssumeRole"
+}
+```
+
+---
+
+##### 🖥️ Task Role — `skillpulse-task-role`
+
+This role is assumed by the **application running inside the container**. It is required specifically to enable **ECS Exec** — the SSM-based interactive shell that lets you `exec` directly into a live Fargate task without SSH or a bastion host.
+
+| Permission | Policy | Purpose |
+|---|---|---|
+| `ssmmessages:CreateControlChannel` | Inline policy | Open SSM control channel for ECS Exec |
+| `ssmmessages:CreateDataChannel` | Inline policy | Open SSM data channel for shell I/O |
+| `ssmmessages:OpenControlChannel` | Inline policy | Maintain SSM control connection |
+| `ssmmessages:OpenDataChannel` | Inline policy | Maintain SSM data stream for interactive shell |
+
+**Inline Policy Document:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> ⚠️ **Important:** `EnableExecuteCommand: true` must also be set on the ECS **Service** (not just the Task Definition) for ECS Exec to work. Both conditions — the Task Role SSM permissions AND the service flag — must be present simultaneously.
+
+---
+
+##### 🔑 ECS Exec — Interactive Shell Into a Live Fargate Task
+
+With the Task Role and service flag configured, you can open a real-time interactive shell into any running Fargate container — no SSH, no bastion, no public IP required.
+
+```text
+ Developer Machine
+       │
+       │  aws ecs execute-command (CLI / IAM authenticated)
+       ▼
+ AWS SSM Service  ←──────────────────────────────────────┐
+       │                                                  │
+       │  SSM Control + Data Channel                      │
+       ▼                                                  │
+ ECS Fargate Task (Private Subnet)                        │
+       │  ssm-agent sidecar process                       │
+       └──────────────────────────────────────────────────┘
+             Interactive /bin/sh shell session
+             (No internet, no SSH port, no bastion)
+```
+
+**ECS Exec Command — Connect to a Live Container:**
+
+```bash
+# List running tasks to get the Task ID
+aws ecs list-tasks \
+  --cluster skillpulse-cluster \
+  --service-name skillpulse-backend-service
+
+# Open an interactive shell into the backend container
+aws ecs execute-command \
+  --cluster skillpulse-cluster \
+  --task <TASK_ID> \
+  --container backend \
+  --interactive \
+  --command "/bin/sh"
+
+# Once inside — example debug commands
+env | grep DB_          # verify secrets were injected correctly
+curl localhost:8080/api/health   # test internal API response
+mysql -h $DB_HOST -u $DB_USER -p  # connect to RDS from within the task
+```
+
+> 📸 **ECS Exec — SSM Interactive Shell Session**
+
+
+---
+
+##### 📊 Role Assignment Per Task Definition
+
+| Role Type | Role Name | Assigned To | Key Permissions |
+|---|---|---|---|
+| **Task Execution Role** | `skillpulse-execution-role` | Both task definitions | ECR pull, Secrets Manager, CloudWatch logs |
+| **Task Role** | `skillpulse-task-role` | Both task definitions | SSM `ssmmessages.*` for ECS Exec |
+
+---
+
+#### 🧱 ECS Cluster Overview
+
+A single ECS Cluster named `skillpulse-cluster` hosts both application services, leveraging **AWS Fargate** as the serverless compute engine — no EC2 instances to provision, patch, or manage.
+
+```text
+ ECS Cluster: skillpulse-cluster
+ ├── Service 1: skillpulse-frontend-service  [EnableExecuteCommand: true]
+ │     └── Task Definition: skillpulse-frontend-td
+ │           ├── Container: nginx (frontend image from ECR)
+ │           ├── Port Mapping: 80
+ │           ├── Task Execution Role: skillpulse-execution-role
+ │           ├── Task Role: skillpulse-task-role (SSM / ECS Exec)
+ │           ├── Log Driver: awslogs → CloudWatch
+ │           └── Secrets: (none — static content)
+ │
+ └── Service 2: skillpulse-backend-service   [EnableExecuteCommand: true]
+       └── Task Definition: skillpulse-backend-td
+             ├── Container: go-api (backend image from ECR)
+             ├── Port Mapping: 8080
+             ├── Task Execution Role: skillpulse-execution-role
+             ├── Task Role: skillpulse-task-role (SSM / ECS Exec)
+             ├── Log Driver: awslogs → CloudWatch
+             └── Secrets: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+                          (injected from AWS Secrets Manager via Execution Role)
+```
+
+> 📸 **ECS Cluster — Active Cluster Overview**
+
+> [ECS Cluster]
+
+<img width="1739" height="850" alt="ECS-service-status" src="https://github.com/user-attachments/assets/07468b89-238c-4140-9bed-35caeb26d4dd" />
+
+
+#### 📋 ECS Component Configuration Summary
+
+**Frontend Service**
+
+| Property | Value |
+|---|---|
+| Launch Type | AWS Fargate |
+| Task Definition | `skillpulse-frontend-td` |
+| Container Image | `ECR → skillpulse-frontend:latest` |
+| Container Port | `80` |
+| Target Group | `tg-frontend` |
+| Subnet Placement | Private App Subnets |
+| Security Group | `SG-ECS-Frontend` |
+| **Task Execution Role** | `skillpulse-execution-role` (ECR pull, CloudWatch logs) |
+| **Task Role** | `skillpulse-task-role` (SSM ECS Exec) |
+| ECS Exec Enabled | `true` |
+| CloudWatch Log Group | `/ecs/skillpulse-frontend` |
+
+**Backend Service**
+
+| Property | Value |
+|---|---|
+| Launch Type | AWS Fargate |
+| Task Definition | `skillpulse-backend-td` |
+| Container Image | `ECR → skillpulse-backend:latest` |
+| Container Port | `8080` |
+| Target Group | `tg-backend` |
+| Subnet Placement | Private App Subnets |
+| Security Group | `SG-ECS-Backend` |
+| **Task Execution Role** | `skillpulse-execution-role` (ECR pull, Secrets Manager, CloudWatch logs) |
+| **Task Role** | `skillpulse-task-role` (SSM ECS Exec) |
+| ECS Exec Enabled | `true` |
+| Secret Injection | AWS Secrets Manager → `skillpulse/db/credentials` |
+| CloudWatch Log Group | `/ecs/skillpulse-backend` |
+
+> 📸 **ECS Services & Running Tasks**
+>
+> [ECS Services]
+<img width="1739" height="850" alt="ECS-service-status" src="https://github.com/user-attachments/assets/b3647427-ea9a-4710-b1d8-84e20a0ae755" />
+
+> [ECS Tasks]
+ <img width="1739" height="803" alt="ECS-task-status" src="https://github.com/user-attachments/assets/aef204b2-0143-4c19-ad42-60ac5d7cbb1e" />
+
+
+#### 🔄 End-to-End Deployment Flow
+
+```text
+Phase 1                    Phase 2                          Phase 3
+──────────                 ──────────                       ──────────
+VPC + Subnets         →    ECR Repositories            →    IAM Execution Role
+IGW + NAT GW          →    ALB + Target Groups         →    IAM Task Role (SSM)
+Route Tables          →    ACM SSL Certificate         →    ECS Cluster
+Security Groups       →    CNAME → ALB DNS             →    Task Definitions
+                      →    RDS MySQL (Private)         →    Frontend Service
+                      →    Secrets Manager             →    Backend Service
+                                                             │
+                                                             ▼
+                                                   ✅ https://skillpulse.altamash.cloud
+```
+
+---
+
+## 📊 Centralized Observability — CloudWatch Logs
+
+All container stdout/stderr streams are forwarded to Amazon CloudWatch Logs in real time via the `awslogs` driver configured in each Task Definition. This provides a unified, searchable audit trail across both services without needing SSH access to any host.
+
+```text
+/ecs/skillpulse-frontend   ← Nginx access logs, error logs
+/ecs/skillpulse-backend    ← Go API request logs, error traces, DB connection events
+```
+
+> 📸 **CloudWatch — Centralized Container Log Streams**
+
+> [CloudWatch Logs: Frontend]
+
+<img width="1756" height="830" alt="log-frontend-sucess" src="https://github.com/user-attachments/assets/f2494cb4-c6c6-4bd3-bf5d-28b985526ab7" />
+
+
+> [CloudWatch Logs: Backend]
+<img width="1654" height="902" alt="log-backend-success" src="https://github.com/user-attachments/assets/31bd1ad7-ce81-48b5-b465-06e9b0ff7193" />
+---
+
+> 📸 **Final Result — Secure HTTPS Connection**
+
+<img width="1869" height="992" alt="DomainMapped" src="https://github.com/user-attachments/assets/341d4557-7f4a-4b00-9237-f7cf024fcb05" />
+
+
+## ⚡ Challenges Faced & Engineering Solutions
+
+During the deployment lifecycle, several real-world enterprise obstacles were encountered, troubleshot, and resolved:
+
+**ECS and ECR Connectivity Interferences**
+- *Problem:* ECS Fargate tasks stayed suspended in a `PENDING` phase, failing to pull container images from ECR.
+- *Resolution:* Root-cause analysis isolated missing route pathways within the private subnet architecture. Route table entries were updated to point targeting paths out safely through the NAT Gateway.
+
+**Target Group Health Check Expirations**
+- *Problem:* ECS services iteratively failed ALB health check cycles, triggering unnecessary task recycles.
+- *Resolution:* Audited inconsistencies between target group endpoints and internal server listeners. Rewrote paths and updated targets to align accurately with operational status requirements.
+
+**Database Timing Failures**
+- *Problem:* API layers initially dropped connectivity to MySQL during early cluster launch synchronization windows.
+- *Resolution:* Implemented standard reconnection retry driver logic within the backend codebase and refined underlying ingress security groups.
+
+**Interactive Fargate Debugging Mechanics**
+- *Problem:* Inspecting internal application drift directly within serverless Fargate tasks is complex due to a lack of host server access.
+- *Resolution:* Active states were resolved by introducing and configuring ECS Exec. Necessary IAM execution statements and SSM integrations were embedded to safely initialize interactive shell container inspections.
+
+---
+
+## 📚 Key Learnings & Implemented Best Practices
+
+This architecture demonstrates a production-ready baseline incorporating crucial industry DevOps practices:
+
+- **High Availability Topology:** Deployed across multiple Availability Zones (Multi-AZ) ensuring infrastructural redundancy.
+- **Zero Trust Data Segmentation:** Application layers and data tiers are segregated completely into private subnet scopes.
+- **Zero Hardcoded Secrets:** Configuration keys are fully abstracted away using AWS Secrets Manager.
+- **Centralized Observability:** Fully structured application tracing and performance auditing using Amazon CloudWatch.
+- **Principal of Least Privilege:** Highly customized IAM Execution Policies tailored to isolate permissions per execution resource block.
+
+---
+
+## 🚀 Execution & Command Reference
+
+### Local Container Verification
+
+```bash
+# Compile and containerize the Frontend Component locally
+docker build -t skillpulse-frontend ./frontend
+
+# Compile and containerize the Backend Component locally
+docker build -t skillpulse-backend ./backend
+```
+
+### Manual Service Deployment Update
+
+```bash
+# Push container images up to remote cloud registries
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/skillpulse-backend:latest
+
+# Trigger a zero-downtime rolling task update across an ECS Cluster
+aws ecs update-service --cluster skillpulse-cluster --service skillpulse-backend-service --force-new-deployment
+```
+
+---
+
+## 👨‍💻 Author
+
+**Altamash**  
+*Cloud Infrastructure Professional & DevOps Engineer*
+
+---
+
+## ⭐ Show Your Support
+
+If this project or repository was helpful to your AWS cloud engineering or DevOps journey, please consider giving this repository a **star**!
