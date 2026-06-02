@@ -215,6 +215,12 @@ This section documents the complete infrastructure provisioning lifecycle, broke
 
 > *Laying the ground rules: isolation, routing, and zero-trust access controls before a single container runs.*
 
+> 📸 **VPC — HLD Architecture**
+
+<img width="2038" height="901" alt="VPC_Network_ECS_FINAL_ARCHITECTURE" src="https://github.com/user-attachments/assets/bfac716d-7b7a-4f85-8974-be06cffeaf1a" />
+
+
+
 #### 🌐 VPC & Subnet Architecture
 
 ```text
@@ -272,6 +278,11 @@ Every Security Group was configured with the principle of **minimum port exposur
 | `SG-ECS-Frontend` | 80 | `SG-ALB` | ALB → Frontend container (internal, post-TLS) |
 | `SG-ECS-Backend` | 8080 | `SG-ALB` | ALB → Backend API container (internal, post-TLS) |
 | `SG-RDS` | 3306 | `SG-ECS-Backend` | Backend → MySQL database only |
+
+> 📸 **Security Group — Flow Architecture**
+
+<img width="1880" height="751" alt="Security_Group_ECS" src="https://github.com/user-attachments/assets/2766cc0c-9458-4e81-9a37-56da825812c8" />
+
 
 ---
 
