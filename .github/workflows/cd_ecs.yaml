@@ -1,0 +1,88 @@
+name: CD - Deploy to ECS
+
+on:
+  workflow_run:
+    workflows: [ CI For ECR ]
+    types:
+        - completed
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ecs-production-deployment
+  cancel-in-progress: true
+
+jobs:
+  Deploy-To-ECS:
+    name: Deploy Application to ECS
+    runs-on: ubuntu-latest
+
+    # Run only if CI succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # Checkout Repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Configure AWS credential using OIDC
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.Assume_Role }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+     # Tag
+      - name: Set image tag
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    # ECR Loggin
+      - name: Login to Amazon ECR Private
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      ########################################
+      # Backend ECS Task Definition Update
+      ########################################
+
+      - name: Render Backend ECS Task Definition
+        id: backend-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs/backend-task-definition.json
+          container-name: skillpulse-backend-container
+          image: |
+            ${{ steps.login-ecr.outputs.registry }}/skillpulse-backend:${{ steps.vars.outputs.sha_short }}
+
+      - name: Deploy Backend ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.backend-task-def.outputs.task-definition }}
+          service: skillpulse-backend-service
+          cluster: skillpulse-cluster
+          wait-for-service-stability: true
+
+    ########################################
+      # Frontend ECS Task Definition Update
+    ########################################
+
+      
+      - name: Render Frontend ECS Task Definition
+        id: frontend-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs/frontend-task-definition.json
+          container-name: skillpulse-frontend-container
+          image: |
+            ${{ steps.login-ecr.outputs.registry }}/skillpulse-backend:${{ steps.vars.outputs.sha_short }}
+
+      - name: Deploy Frontend ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.frontend-task-def.outputs.task-definition }}
+          service: skillpulse-frontend-service
+          cluster: skillpulse-cluster
+          wait-for-service-stability: true
